@@ -23,36 +23,38 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 
 @app.post("/arcgis-webhook")
 async def webhook(request: Request):
+    logger.error("🚨 WEBHOOK ONTVANGEN")
+
+    body = await request.body()
+
+    if not body:
+        logger.error("ℹ️ Lege body ontvangen (ArcGIS handshake/test)")
+        return {"status": "empty body"}
+
     try:
-        logger.error("🚨 WEBHOOK ONTVANGEN")
         data = await request.json()
-        logger.error(f"Payload: {data}")
-
-        edits = data.get("edits")
-        if not edits:
-            logger.error("⚠️ Geen 'edits' in payload")
-            return {"status": "no edits"}
-
-        features = []
-        features.extend(edits.get("adds", []))
-        features.extend(edits.get("updates", []))
-
-        if not features:
-            logger.error("⚠️ Geen adds of updates gevonden")
-            return {"status": "no features"}
-
-        for feature in features:
-            attrs = feature.get("attributes", {})
-            bijzonderheden = attrs.get("Bijzonderheden")
-
-            if bijzonderheden in ["Eikenprocessierups", "Iepziekte"]:
-                logger.error(f"📧 Mail trigger: {bijzonderheden}")
-                send_email(bijzonderheden, attrs)
-            else:
-                logger.error(f"ℹ️ Geen relevante bijzonderheid: {bijzonderheden}")
-
-        return {"status": "ok"}
-
     except Exception as e:
-        logger.error(f"❌ Fout in webhook: {e}", exc_info=True)
-        return {"status": "error"}
+        logger.error(f"❌ JSON parse fout: {e}")
+        logger.error(f"Raw body: {body}")
+        return {"status": "invalid json"}
+
+    logger.error(f"Payload: {data}")
+
+    edits = data.get("edits")
+    if not edits:
+        logger.error("ℹ️ Geen edits in payload")
+        return {"status": "no edits"}
+
+    features = edits.get("adds", []) + edits.get("updates", [])
+
+    for feature in features:
+        attrs = feature.get("attributes", {})
+        bijzonderheden = attrs.get("Bijzonderheden")
+
+        if bijzonderheden in ["Eikenprocessierups", "Iepziekte"]:
+            logger.error(f"📧 Mail trigger: {bijzonderheden}")
+            send_email(bijzonderheden, attrs)
+        else:
+            logger.error(f"ℹ️ Geen relevante bijzonderheid: {bijzonderheden}")
+
+    return {"status": "ok"}
