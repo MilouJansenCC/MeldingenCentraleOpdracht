@@ -24,8 +24,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 if not FROM_EMAIL or not TO_EMAIL or not SMTP_PASSWORD:
     logger.warning("FROM_EMAIL, TO_EMAIL or SMTP_PASSWORD not set. Email sending will fail until configured.")
 
-@app.post("https://meldingencentraleopdracht-production.up.railway.app/arcgis-webhook
-")
+@app.post("/arcgis-webhook")
 async def webhook(request: Request):
     print("🚨 WEBHOOK ONTVANGEN")
     data = await request.json()
