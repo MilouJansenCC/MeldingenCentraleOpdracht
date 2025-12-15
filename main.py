@@ -29,4 +29,5 @@ async def webhook(request: Request):
     print("🚨 WEBHOOK ONTVANGEN")
     data = await request.json()
     print(data)
+    return {"status": "ok"}
     
